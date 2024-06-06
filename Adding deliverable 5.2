@@ -1,0 +1,104 @@
+/*****************************************************************************************************************
+NAME:    EC_IT143_W5.2_OS
+PURPOSE: Answering the questions created
+
+MODIFICATION LOG:
+Ver      Date        Author        Description
+-----   ----------   -----------   -------------------------------------------------------------------------------
+1.0     06/06/2024   Samuel Obuobi       1. Built this script for EC IT440
+
+
+RUNTIME: 
+Xm Xs
+
+NOTES: 
+This is where I talk about what this script is, why I built it, and other stuff...
+ 
+******************************************************************************************************************/
+
+-- Q1:(Scott Martinez) We wish to promote our global products.
+-- We are interested in knowing how many non-US works are in our catalogue.
+-- We would prefer to have information sorted by ratings, programme kind (movie or show), and nation (with the proportion of total productions).
+-- Please only give consideration to non-US products.
+
+-- A1: The list of production nations (apart from the US) along with the total number of movie and television show titles is the response.
+
+SELECT production_countries
+	 , COUNT(Title) AS Total_Titles
+     , type
+FROM Netflix_titles
+WHERE production_countries NOT LIKE '%US%'
+GROUP BY production_countries, type
+ORDER BY production_countries;
+
+
+
+
+-- Q2: (Me) I'm assisting the Simpsons with better money management. 
+
+-- A2: Could you create a table for me that displays who spends the most? 
+-- I'd want to see the member's name and the total amount they spent between 1990 and 1991. and the primary location where they made their purchases.
+
+
+SELECT DISTINCT
+	(SELECT	CAST(SUM(FVCSub1.Debit) + SUM(PESub1.Amount) AS decimal(36,2))
+	FROM FBS_Viza_Costmo FVCSub1 JOIN Planet_Express PESub1 ON FVCSub1.Member_Name = PESub1.Card_Member
+	WHERE FVCSub1.Date BETWEEN '1990/01/01' and '1991/01/01' AND PESub1.Date BETWEEN '1990/01/01' and '1991/01/01' 
+	AND PESub1.Category IS NOT NULL AND FVCSub1.Description != 'WHOLE PAYCHECK'
+	AND FVCSub1.Member_Name = 'HOMER SIMPSON' AND PESub1.Card_Member = 'HOMER SIMPSON'
+	) AS 'How Much Homer Spent', 
+	(SELECT	CAST(SUM(FVCSub2.Debit) + SUM(PESub2.Amount) AS decimal(36,2))
+	FROM FBS_Viza_Costmo FVCSub2 JOIN Planet_Express PESub2 ON FVCSub2.Member_Name = PESub2.Card_Member
+	WHERE FVCSub2.Date BETWEEN '1990/01/01' and '1991/01/01' AND PESub2.Date BETWEEN '1990/01/01' and '1991/01/01' 
+	AND PESub2.Category IS NOT NULL AND FVCSub2.Description != 'WHOLE PAYCHECK'
+	AND FVCSub2.Member_Name = 'MARGE SIMPSON' AND PESub2.Card_Member = 'MARGE SIMPSON') AS 'How Much Marge Spent'
+	, 
+	(
+	SELECT TOP 1 FVC.Description
+	FROM FBS_Viza_Costmo FVC
+	WHERE FVC.Description != 'WHOLE PAYCHECK' AND FVC.Description != 'WHOLEPAYCHECK.COM' 
+	AND FVC.Date BETWEEN '1990/01/01' and '1991/01/01'
+	GROUP BY FVC.Description
+	ORDER BY SUM(FVC.Debit) DESC
+	) AS 'FBS Viza Costmo Hightest Place'
+	,
+	(
+	SELECT TOP 1 Planet_Express.Description
+	FROM Planet_Express
+	WHERE  Category IS NOT NULL AND Planet_Express.Date BETWEEN '1990/01/01' and '1991/01/01'
+	GROUP BY Planet_Express.Description
+	ORDER BY SUM(Amount) DESC
+	) AS 'Planet Express Hightest Place'
+FROM FBS_Viza_Costmo FVC JOIN Planet_Express PE ON FVC.Member_Name = PE.Card_Member;
+
+
+
+-- Q3: (Me) Hello, I would like to know how frequently Homer has paid fees, how much those costs typically cost, and which fee is the largest. 
+
+-- A3: To demonstrate to Homer the impact of these fees on his account, I require this data.
+
+SELECT COUNT(Planet_Express.Description) AS 'Number of FEES', AVG(Amount) AS 'Average Cost of FEES', 
+	( SELECT TOP 1 Amount
+	FROM Planet_Express
+	WHERE Planet_Express.Description = 'FEES'
+	ORDER BY Amount DESC
+	) AS 'Highest FEE'
+FROM Planet_Express
+WHERE Planet_Express.Description = 'FEES'
+;
+
+
+-- Q4: (Me) Hi there, I would like to know how frequently my spouse goes to the restaurant-bar-café, how much he spends there, and when he was last there.
+
+-- A3: He claimed he hadn't been there since last week, but I don't think him; he's probably lying to assist kick his drinking habit.
+
+SELECT COUNT('Restaurant-bar & Caf') AS 'Times He has been to Restaurant-bar & Caf',
+SUM(Amount) AS 'How Much He spent', 
+MAX(Planet_Express.Date) AS 'Last Time he visited'
+FROM Planet_Express
+WHERE Category = 'Restaurant-bar & Caf'
+GROUP BY Category
+;
+
+
+SELECT GETDATE() AS my_date;
